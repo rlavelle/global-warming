@@ -1,0 +1,154 @@
+---
+title: "playground"
+author: "Rowan Lavelle"
+date: "12/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(coda)
+```
+
+```{r}
+data = read.csv('data/GlobalTemperatures.csv', header=T)
+data = data[-(1:1200),]
+yearly.average = aggregate(data$LandAverageTemperature, list(rep(1:(nrow(data) %/% 12 + 1), each = 12, len = nrow(data))), mean)[-1]$x
+plot(yearly.average, type='l')
+plot(data$LandAverageTemperature, type='l')
+```
+```{r}
+year.differences = diff(yearly.average)
+hist(year.differences)
+plot(density(diff(yearly.average)),type='l')
+```
+For $\theta$
+$$
+p(\theta|\sigma^2) \propto p(Y|\theta,\sigma^2)p(\theta)
+$$
+
+$$
+\propto Norm(\theta|\mu_0,\tau_0^2) \times \prod_{i=1}^n Norm(y_i|\theta,\sigma^2)
+$$
+From the pre computed normal normal model we get
+$$
+\theta \sim Norm(\mu_{n},k^2_{n})
+$$
+Where
+$$
+\mu_{n} = \frac{\frac{\mu_0}{\tau_0^2} + n\frac{\bar{y}}{\sigma^2}}{\frac{1}{\tau_0} + \frac{n}{\sigma^2}}, k^2_{n} = \left(\frac{1}{\tau_0^2} + \frac{n}{\sigma^2}\right)^{-1}
+$$
+
+For $\frac{1}{\sigma^2}$
+$$
+p(\sigma_1^2|Y) \propto p(Y|\theta,\sigma^2)p(\sigma^2)
+$$
+$$
+\propto Gamma(\sigma|\frac{\nu_0}{2},\frac{\nu_0\sigma_0^2}{2}) \times \prod_{i=1}^n Norm(y_i|\theta,\sigma^2)
+$$
+From the pre computed gamma normal model we get (assuming fixed $\theta$ here)
+$$
+\frac{1}{\sigma^2} \sim Gamma(\frac{\nu_{n}}{2},\frac{\nu_{n}\sigma_{n}^2}{2})
+$$
+Such that $\nu_{n} = \nu_0 + n$ and $\sigma^2_{n} = \frac{1}{v_{n}}\left[\nu_0\sigma^2_0+ns^2 \right]$ where $s^2$ is the sample variance when $\theta$ is known
+
+```{r}
+sigma20 = 0.1
+v0 = 100
+draws = 1/rgamma(n=1000, shape=v0/2, rate=v0*sigma20/2)
+hist(draws) 
+```
+```{r}
+mu0 = 0
+tau20 = 0.001
+draws = rnorm(n=1000, mean=mu0, sd=sqrt(tau20))
+hist(draws)
+```
+
+```{r}
+N = 50000
+
+# data
+y = year.differences
+n = length(y)
+
+# containers for results
+thetas = rep(0,N)
+preds = rep(0,N)
+
+# initial values
+theta = mean(y)
+sigma2 = var(y)
+
+for(i in seq(1,N)){
+  s2 = var(y)
+  y.bar = mean(y)
+
+  # sample sigma
+  vn = v0 + n
+  sigma2n = (1/vn)*(v0*sigma20 + n*s2)
+  sigma2 = 1/rgamma(n = 1, shape = vn/2, rate = vn*sigma2n/2)
+  
+  # sample theta
+  mu.n = (mu0/tau20 + n*y.bar/sigma2)/(1/tau20 + n/sigma2)
+  k2.n = 1/(1/tau20 + n/sigma2)
+  theta = rnorm(n = 1, mean = mu.n, sd = sqrt(k2.n))
+  
+  # predict
+  pred = rnorm(n = 1, mean = theta, sd = sqrt(sigma2))
+  
+  # save values
+  thetas[i] = theta
+  preds[i] = pred
+}
+```
+
+```{r}
+acf(thetas)
+```
+```{r}
+effectiveSize(thetas)
+```
+
+```{r}
+hist(thetas)
+```
+```{r}
+h.true = hist(y,prob=TRUE,
+              col = adjustcolor('green',alpha.f = 0.2),
+              main = 'Predicted vs Actual',
+              xlab = 'Y',
+              xlim=c(min(min(y),min(preds)), max(max(y),max(preds))))
+h.pred = hist(preds,add=TRUE,prob=TRUE,
+              col = adjustcolor('blue',alpha.f = 0.2))
+d.pred = density(preds)
+d.true = density(y)
+lines(d.pred, col='blue')
+lines(d.true, col='green')
+legend("topleft", inset = 0.01, legend=c("Actual", "Predicted"),col=c("green", "blue"), lty = 1:2)
+```
+
+```{r}
+last_temp = yearly.average[length(yearly.average)]
+future_temps = c(last_temp,rep(0,150))
+for(i in 1:150){
+  last_temp = last_temp + sample(preds,size=1)
+  future_temps[i+1] = last_temp
+}
+
+plot(yearly.average, type='l',
+     xlim=c(0,n+150),
+     ylim=c(
+       min(yearly.average), max(future_temps)
+     ))
+lines((n+1):(n+151),future_temps, col='red')
+```
+
+
+
+
+
+
+
+
+
