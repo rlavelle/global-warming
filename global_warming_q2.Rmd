@@ -129,22 +129,45 @@ legend("topleft", inset = 0.01, legend=c("Actual", "Predicted"),col=c("green", "
 ```
 
 ```{r}
-last_temp = yearly.average[length(yearly.average)]
-future_temps = c(last_temp,rep(0,150))
-for(i in 1:150){
-  last_temp = last_temp + sample(preds,size=1)
-  future_temps[i+1] = last_temp
-}
+f = 100
+monte_carlo = matrix(nrow=1000, ncol=f+1)
+true.max = 0
+true.min = 100000000000
 
+for(j in 1:1000){
+  last_temp = yearly.average[length(yearly.average)]
+  future_temps = c(last_temp,rep(0,f))
+  for(i in 1:f){
+    last_temp = last_temp + sample(preds,size=1)
+    future_temps[i+1] = last_temp
+  }
+  monte_carlo[j,] = future_temps
+  
+  ma = max(max(future_temps),max(yearly.average))
+  mi = min(min(future_temps),min(yearly.average))
+  if(ma > true.max){
+    true.max = ma
+  }
+  if(mi < true.min){
+    true.min = mi
+  }
+}
 plot(yearly.average, type='l',
-     xlim=c(0,n+150),
+     xlim=c(0,n+f),
      ylim=c(
-       min(yearly.average), max(future_temps)
+       true.min,true.max
      ))
-lines((n+1):(n+151),future_temps, col='red')
+
+for(i in 1:1000){
+  lines((n+1):(n+f+1),monte_carlo[i,], col='red')
+}
 ```
 
-
+```{r}
+final_temps = monte_carlo[,f]
+last_temp = yearly.average[n]
+mean(final_temps > last_temp)
+```
 
 
 
