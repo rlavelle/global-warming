@@ -159,7 +159,7 @@ plot(yearly.average, type='l',
      ))
 
 for(i in 1:1000){
-  lines((n+1):(n+f+1),monte_carlo[i,], col='red')
+  lines((n+1):(n+f+1),monte_carlo[i,], col=runif(1,1,20))
 }
 ```
 

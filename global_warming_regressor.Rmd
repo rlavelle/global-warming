@@ -45,10 +45,21 @@ regressor = function(X,y){
 ```
 
 ```{r}
+adj.r2 = function(y,y.pred,p){
+  r2 = 1-(sum((y-y.pred)^2)/sum((y-mean(y))^2))
+  
+  N = length(y)
+  adjr2 = 1 - ((1-r2)*(N-1))/(N-p-1)
+  return(adjr2)
+}
+```
+
+```{r}
 # just linear term
 y = data$LandAverageTemperature
 size = length(y)
-X = cbind(rep(1, size), seq(1, size))
+x = seq(1,size)
+X = cbind(rep(1, size), x)
 
 beta = regressor(X,y)
 beta.bayes = as.matrix(colMeans(beta))
@@ -58,6 +69,8 @@ beta.post.intervals
 
 bayes.error.simple = (1/size)*sum((y-y.pred.bayes.simple)^2)
 bayes.error.simple
+
+adj.r2(y,y.pred.bayes.simple,2)
 
 # harmonic regression
 y = data$LandAverageTemperature
@@ -74,6 +87,8 @@ beta.post.intervals
 bayes.error.sin.cos = (1/size)*sum((y-y.pred.bayes.sin.cos)^2)
 bayes.error.sin.cos
 
+adj.r2(y,y.pred.bayes.sin.cos,3)
+
 # harmonic + linear regression
 y = data$LandAverageTemperature
 size = length(y)
@@ -88,6 +103,7 @@ beta.post.intervals
 
 bayes.error.lin.sin.cos = (1/size)*sum((y-y.pred.bayes.lin.sin.cos)^2)
 bayes.error.lin.sin.cos
+adj.r2(y,y.pred.bayes.lin.sin.cos,4)
 
 # harmonic + linear + poly regression
 y = data$LandAverageTemperature
@@ -103,6 +119,8 @@ beta.post.intervals
 
 bayes.error.lin.sin.cos.poly = (1/size)*sum((y-y.pred.bayes.lin.sin.cos.poly)^2)
 bayes.error.lin.sin.cos.poly
+adj.r2(y,y.pred.bayes.lin.sin.cos.poly,5)
+
 ```
 
 
@@ -139,7 +157,7 @@ lines(y.lin.har, col='black')
 y = data$LandAverageTemperature
 size = length(y)
 x = seq(1,size)
-X = cbind(rep(1, size), x, sin(2*pi*x/12), cos(2*pi*x/12))
+c
 
 beta = regressor(X,y)
 beta.bayes = as.matrix(colMeans(beta))
@@ -150,6 +168,7 @@ beta.post.intervals
 bayes.error.lin.sin.cos = (1/size)*sum((y-y.pred.bayes.lin.sin.cos)^2)
 bayes.error.lin.sin.cos
 ```
+
 ```{r}
 apply(beta, MARGIN=2, FUN=function(col){
   h = hist(col,prob=TRUE)
@@ -158,8 +177,17 @@ apply(beta, MARGIN=2, FUN=function(col){
 })
 ```
 
+```{r}
+y = data$LandAverageTemperature
+x.future = seq(size,size+120)
+X = cbind(rep(1, length(x.future)), x.future, sin(2*pi*x.future/12), cos(2*pi*x.future/12))
+y.pred = X %*% beta.bayes
+plot(seq(1,size),y, type='l',
+     xlim=c(0,size+120),
+     ylim=c(0,max(y.pred)))
 
-
+lines(c(size,x.future),c(y[length(y)],y.pred), col='red')
+```
 
 
 
