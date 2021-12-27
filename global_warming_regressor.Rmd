@@ -125,12 +125,19 @@ adj.r2(y,y.pred.bayes.lin.sin.cos.poly,5)
 
 
 ```{r}
-plot(y, type='l')
+plot(y, type='p',
+     ylab = 'celsius',
+     main = 'model 1')
 lines(y.pred.bayes.simple, col='green')
+
+plot(y, type='p',
+     ylab = 'celsius',
+     main = 'model 2')
 lines(y.pred.bayes.sin.cos, col='red')
 
-plot(y, type='l')
-lines(y.pred.bayes.simple, col='green')
+plot(y, type='p',
+     ylab = 'celsius',
+     main = 'model 3')
 lines(y.pred.bayes.lin.sin.cos, col='purple')
 ```
 
@@ -143,10 +150,12 @@ beta.har = solve(t(X.har)%*%X.har)%*%t(X.har)%*%resid.har
 beta.lin.har = solve(t(X.lin.har)%*%X.lin.har)%*%t(X.lin.har)%*%resid.lin.har
 y.har = X.har %*% beta.har
 y.lin.har = X.lin.har %*% beta.lin.har
-plot(resid.har, col=adjustcolor( "red", alpha.f = 0.5))
+plot(resid.har, col=adjustcolor( "red", alpha.f = 0.5),
+     ylab = 'residuals')
 lines(resid.lin.har, col=adjustcolor( "black", alpha.f = 0.5), type='p')
 lines(y.har, col='red')
 lines(y.lin.har, col='black')
+legend("topleft", inset = 0.01, legend=c("Model 2", "Model 3"),col=c("red", "black"), lty = 1:2)
 ```
 ```{r}
 # legend("topleft", inset = 0.01, legend=c("Actual", "Predicted"),col=c("green", "blue"), lty = 1:2)
@@ -157,7 +166,7 @@ lines(y.lin.har, col='black')
 y = data$LandAverageTemperature
 size = length(y)
 x = seq(1,size)
-c
+X = cbind(rep(1, length(x)), x, sin(2*pi*x/12), cos(2*pi*x/12))
 
 beta = regressor(X,y)
 beta.bayes = as.matrix(colMeans(beta))
@@ -184,9 +193,13 @@ X = cbind(rep(1, length(x.future)), x.future, sin(2*pi*x.future/12), cos(2*pi*x.
 y.pred = X %*% beta.bayes
 plot(seq(1,size),y, type='l',
      xlim=c(0,size+120),
-     ylim=c(0,max(y.pred)))
+     ylim=c(0,max(y.pred)),
+     ylab = 'celsius',
+     main = 'Regression Prediction',
+     xlab = 'Index')
 
 lines(c(size,x.future),c(y[length(y)],y.pred), col='red')
+legend("topleft", inset = 0.01, legend=c("Historical Data", "Predicted Data"),col=c("black", "red"), lty = 1:2)
 ```
 
 

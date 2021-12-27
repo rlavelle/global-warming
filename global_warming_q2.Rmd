@@ -12,15 +12,31 @@ library(coda)
 
 ```{r}
 data = read.csv('data/GlobalTemperatures.csv', header=T)
+plot(data$LandAndOceanAverageTemperatureUncertainty, type='p',
+     ylab='uncertainty',
+     main = 'Data Collection Uncertainty')
+abline(v=1600, col='red')
+data[1600,]
+```
+
+```{r}
+data = read.csv('data/GlobalTemperatures.csv', header=T)
 data = data[-(1:1200),]
+nrow(data)
 yearly.average = aggregate(data$LandAverageTemperature, list(rep(1:(nrow(data) %/% 12 + 1), each = 12, len = nrow(data))), mean)[-1]$x
-plot(yearly.average, type='l')
-plot(data$LandAverageTemperature, type='l')
+plot(yearly.average, type='l',
+     ylab = 'celsius',
+     main = 'Yearly Land Average Temperature Data')
+plot(data$LandAverageTemperature, type='l',
+    ylab = 'celsius',
+     main = 'Montly Land Average Temperature Data')
 ```
 ```{r}
 year.differences = diff(yearly.average)
+length(year.differences)
 hist(year.differences)
-plot(density(diff(yearly.average)),type='l')
+plot(density(diff(yearly.average)),type='l', main = 'Distribution of Year to Year Temperature Changes')
+plot(year.differences, type='l', ylab = 'celsius', main = 'Year to Year Temperature Changes')
 ```
 For $\theta$
 $$
@@ -50,11 +66,11 @@ From the pre computed gamma normal model we get (assuming fixed $\theta$ here)
 $$
 \frac{1}{\sigma^2} \sim Gamma(\frac{\nu_{n}}{2},\frac{\nu_{n}\sigma_{n}^2}{2})
 $$
-Such that $\nu_{n} = \nu_0 + n$ and $\sigma^2_{n} = \frac{1}{v_{n}}\left[\nu_0\sigma^2_0+ns^2 \right]$ where $s^2$ is the sample variance when $\theta$ is known
+Such that $c$ and $\sigma^2_{n} = \frac{1}{v_{n}}\left[\nu_0\sigma^2_0+ns^2 \right]$ where $s^2$ is the sample variance when $\theta$ is known
 
 ```{r}
 sigma20 = 0.1
-v0 = 100
+v0 = 1000
 draws = 1/rgamma(n=1000, shape=v0/2, rate=v0*sigma20/2)
 hist(draws) 
 ```
@@ -73,8 +89,8 @@ y = year.differences
 n = length(y)
 
 # containers for results
-thetas = rep(0,N)
-preds = rep(0,N)
+thetas.bad = rep(0,N)
+preds.bad = rep(0,N)
 
 # initial values
 theta = mean(y)
@@ -98,8 +114,8 @@ for(i in seq(1,N)){
   pred = rnorm(n = 1, mean = theta, sd = sqrt(sigma2))
   
   # save values
-  thetas[i] = theta
-  preds[i] = pred
+  thetas.bad[i] = theta
+  preds.bad[i] = pred
 }
 ```
 
@@ -114,6 +130,14 @@ effectiveSize(thetas)
 hist(thetas)
 ```
 ```{r}
+mean(thetas)
+quantile(thetas, probs = c(0.025, 0.975))
+```
+```{r}
+mean(y > 0)
+```
+
+```{r}
 h.true = hist(y,prob=TRUE,
               col = adjustcolor('green',alpha.f = 0.2),
               main = 'Predicted vs Actual',
@@ -121,11 +145,15 @@ h.true = hist(y,prob=TRUE,
               xlim=c(min(min(y),min(preds)), max(max(y),max(preds))))
 h.pred = hist(preds,add=TRUE,prob=TRUE,
               col = adjustcolor('blue',alpha.f = 0.2))
+h.pred.bad = hist(preds.bad,add=TRUE,prob=TRUE,
+                  col = adjustcolor('red',alpha.f = 0.2))
 d.pred = density(preds)
 d.true = density(y)
+d.pred.bad = density(preds.bad)
 lines(d.pred, col='blue')
 lines(d.true, col='green')
-legend("topleft", inset = 0.01, legend=c("Actual", "Predicted"),col=c("green", "blue"), lty = 1:2)
+lines(d.pred.bad, col='red')
+c
 ```
 
 ```{r}
